@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proyecto Álgebra 2 - Juego Interactivo</title>
+  <style>
+    :root {
+      --color-numeros: #4CAF50;
+      --color-operadores: #2196F3;
+      --color-parentesis: #FF9800;
+      --color-fondo: #f5f7fa;
+      --color-zona: #e3f2fd;
+      --color-exito: #4CAF50;
+      --color-error: #F44336;
+      --color-instructions: #607D8B;
+      --color-eliminar: #FF5252;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: var(--color-fondo);
+      color: #333;
+      line-height: 1.6;
+    }
+
+    h1, h2 {
+      color: #2c3e50;
+      text-align: center;
+    }
+
+    .contenedor-juego {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .instrucciones {
+      background-color: color-mix(in srgb, var(--color-instructions) 10%, white);
+      border-left: 4px solid var(--color-instructions);
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .panel-numeros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+      justify-content: center;
+    }
+
+    .elemento {
+      padding: 15px 20px;
+      border-radius: 8px;
+      cursor: move;
+      user-select: none;
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .elemento.numero {
+      background-color: var(--color-numeros);
+      color: white;
+    }
+
+    .elemento.operador {
+      background-color: var(--color-operadores);
+      color: white;
+    }
+
+    .elemento.parentesis {
+      background-color: var(--color-parentesis);
+      color: white;
+    }
+
+    .elemento:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .zona-expresion {
+      min-height: 100px;
+      border: 2px dashed #90CAF9;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      background-color: var(--color-zona);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .controles {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      background-color: #5C6BC0;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #3949AB;
+    }
+
+    .mensaje {
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-weight: bold;
+      display: none;
+    }
+
+    .exito {
+      background-color: color-mix(in srgb, var(--color-exito) 20%, white);
+      color: var(--color-exito);
+      display: block !important;
+    }
+
+    .error {
+      background-color: color-mix(in srgb, var(--color-error) 20%, white);
+      color: var(--color-error);
+      display: block !important;
+    }
+
+    .elemento-clonado {
+      opacity: 0.9;
+    }
+
+    .boton-eliminar {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 20px;
+      height: 20px;
+      background-color: var(--color-eliminar);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .elemento-expresion:hover .boton-eliminar {
+      opacity: 1;
+    }
+
+    .elemento-expresion {
+      position: relative;
+    }
+
+    .highlight {
+      animation: highlight 0.5s;
+    }
+
+    @keyframes highlight {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <h2>Números disponibles:</h2>
+  <div class="panel-numeros" id="panel-numeros"></div>
+
+  <h2>Operadores disponibles:</h2>
+  <div class="panel-numeros">
+    <div class="elemento operador" draggable="true" data-valor="+">+</div>
+    <div class="elemento operador" draggable="true" data-valor="-">-</div>
+    <div class="elemento operador" draggable="true" data-valor="*">×</div>
+    <div class="elemento operador" draggable="true" data-valor="/">÷</div>
+    <div class="elemento parentesis" draggable="true" data-valor="(">(</div>
+    <div class="elemento parentesis" draggable="true" data-valor=")">)</div>
+  </div>
+
+  <h2>Construye tu expresión:</h2>
+  <div class="zona-expresion" id="zona-expresion"></div>
+
+  <div class="controles">
+    <button onclick="verificarSolucion()">Verificar solución</button>
+    <button onclick="reiniciarJuego()">Nuevos números</button>
+    <button onclick="limpiarExpresion()">Limpiar</button>
+  </div>
+
+  <div id="mensaje" class="mensaje"></div>
+</div>
+
+<script>
+  // Variables del juego
+  let numerosActuales = [];
+  let numerosUsados = new Map(); // Ahora guardamos referencia al elemento
+  let siguienteId = 0;
+  let elementoArrastrado = null;
+  let posicionArrastre = null;
+
+  // Inicializar el juego al cargar la página
+  document.addEventListener('DOMContentLoaded', () => {
+    generarNumerosValidos();
+
+  document.querySelectorAll('.panel-numeros .operador, .panel-numeros .parentesis').forEach(elemento => {
+    elemento.addEventListener('click', () => {
+      const valor = elemento.dataset.valor;
+      const texto = elemento.textContent;
+      const nuevoElemento = crearElementoExpresion(valor, texto, 'operador');
+      document.getElementById('zona-expresion').appendChild(nuevoElemento);
+    });
+  });
+    configurarArrastre();
+    configurarZonaExpresion();
+  });
+
+  // Configurar eventos de arrastre para los elementos iniciales
+  function configurarArrastre() {
+    document.querySelectorAll('.panel-numeros .elemento').forEach(elemento => {
+      elemento.addEventListener('dragstart', manejarDragStart);
+
+      elemento.addEventListener('click', () => {
+        if (!numerosUsados.has(index.toString())) {
+          const nuevoElemento = crearElementoExpresion(num, num, 'numero', index.toString());
+          document.getElementById('zona-expresion').appendChild(nuevoElemento);
+          numerosUsados.set(index.toString(), nuevoElemento);
+          actualizarNumerosDisponibles();
+        }
+      });
+    });
+  }
+
+  // Configurar la zona de expresión
+  function configurarZonaExpresion() {
+    const zonaExpresion = document.getElementById('zona-expresion');
+
+    zonaExpresion.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const elemento = document.elementFromPoint(e.clientX, e.clientY);
+
+      // Resaltar el elemento sobre el que estamos pasando
+      if (elemento && elemento !== zonaExpresion && elemento.classList.contains('elemento-expresion')) {
+        elemento.classList.add('highlight');
+      }
+    });
+
+    zonaExpresion.addEventListener('dragleave', (e) => {
+      document.querySelectorAll('.highlight').forEach(el => {
+        el.classList.remove('highlight');
+      });
+    });
+
+    zonaExpresion.addEventListener('drop', manejarDrop);
+  }
+
+  // Manejar inicio de arrastre
+  function manejarDragStart(event) {
+    const elemento = event.target;
+    const esOperador = elemento.classList.contains('operador') ||
+            elemento.classList.contains('parentesis');
+
+    elementoArrastrado = elemento;
+    posicionArrastre = { x: event.clientX, y: event.clientY };
+
+    // Para números: mover el original o crear uno nuevo si ya está en uso
+    if (!esOperador) {
+      const id = elemento.dataset.id;
+
+      // Si el número ya está en la expresión, arrastramos ese
+      if (numerosUsados.has(id)) {
+        elementoArrastrado = numerosUsados.get(id);
+        event.dataTransfer.setData('text/plain', JSON.stringify({
+          tipo: 'numero-expresion',
+          id: id
+        }));
+      } else {
+        event.dataTransfer.setData('text/plain', JSON.stringify({
+          tipo: 'numero',
+          valor: elemento.textContent,
+          id: id
+        }));
+      }
+    }
+    // Para operadores: crear una copia
+    else {
+      event.dataTransfer.setData('text/plain', JSON.stringify({
+        tipo: 'operador',
+        valor: elemento.dataset.valor,
+        texto: elemento.textContent
+      }));
+    }
+
+    // Efecto visual al arrastrar
+    event.target.style.opacity = '0.4';
+  }
+
+  // Manejar soltar elemento en la zona de expresión
+  function manejarDrop(event) {
+    event.preventDefault();
+    const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+    const zonaExpresion = document.getElementById('zona-expresion');
+
+    // Eliminar resaltado
+    document.querySelectorAll('.highlight').forEach(el => {
+      el.classList.remove('highlight');
+    });
+
+    // Determinar posición de inserción
+    const elementoHover = document.elementFromPoint(event.clientX, event.clientY);
+
+    let elemento;
+
+    // Crear nuevo elemento (para operadores) o mover el número
+    if (data.tipo === 'operador') {
+      elemento = crearElementoExpresion(data.valor, data.texto, 'operador');
+    }
+    else if (data.tipo === 'numero-expresion') {
+      // Elemento ya existente en la expresión que estamos moviendo
+      elemento = elementoArrastrado;
+
+      // Si lo soltamos en el mismo lugar, no hacer nada
+      if (elementoHover === elemento) {
+        return;
+      }
+    }
+    else { // Nuevo número
+      // Verificar si el número ya fue usado
+      if (numerosUsados.has(data.id)) {
+        mostrarMensaje('¡Error!', 'Este número ya ha sido usado en la expresión.', 'error');
+        document.querySelector(`[data-id="${data.id}"]`).style.opacity = '1';
+        return;
+      }
+
+      elemento = crearElementoExpresion(data.valor, data.valor, 'numero', data.id);
+      numerosUsados.set(data.id, elemento);
+      actualizarNumerosDisponibles();
+    }
+
+    // Insertar en la posición adecuada
+    if (!elementoHover || elementoHover === zonaExpresion) {
+      // Soltar en zona vacía
+      zonaExpresion.appendChild(elemento);
+    } else if (elementoHover.classList.contains('elemento-expresion')) {
+      // Soltar cerca de otro elemento
+      const rect = elementoHover.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+
+      if (x > elementoHover.offsetWidth / 2) {
+        // Insertar después
+        elementoHover.after(elemento);
+      } else {
+        // Insertar antes
+        elementoHover.before(elemento);
+      }
+    }
+
+    // Restaurar opacidad del elemento arrastrado
+    if (elementoArrastrado) {
+      elementoArrastrado.style.opacity = '1';
+      elementoArrastrado = null;
+    }
+  }
+
+  // Crear un nuevo elemento en la zona de expresión
+  function crearElementoExpresion(valor, texto, tipo, id = null) {
+    const elemento = document.createElement('div');
+    elemento.className = `elemento ${tipo === 'numero' ? 'numero' :
+            valor === '(' || valor === ')' ? 'parentesis' : 'operador'} elemento-expresion`;
+    elemento.textContent = texto;
+    elemento.draggable = true;
+    elemento.dataset.valor = valor;
+    if (id) elemento.dataset.id = id;
+
+    // Botón para eliminar
+    const botonEliminar = document.createElement('div');
+    botonEliminar.className = 'boton-eliminar';
+    botonEliminar.innerHTML = '✕';
+    botonEliminar.onclick = (e) => {
+      e.stopPropagation();
+      eliminarElemento(elemento, id);
+    };
+    elemento.appendChild(botonEliminar);
+
+    // Configurar eventos de arrastre
+    elemento.addEventListener('dragstart', (e) => {
+      if (tipo === 'numero') {
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+          tipo: 'numero-expresion',
+          id: id
+        }));
+      } else {
+        e.dataTransfer.setData('text/plain', JSON.stringify({
+          tipo: 'operador',
+          valor: valor,
+          texto: texto
+        }));
+      }
+      elemento.style.opacity = '0.4';
+      elementoArrastrado = elemento;
+    });
+
+    elemento.addEventListener('dragend', () => {
+      elemento.style.opacity = '1';
+    });
+
+    return elemento;
+  }
+
+  // Eliminar un elemento de la expresión
+  function eliminarElemento(elemento, id) {
+    if (id) {
+      numerosUsados.delete(id);
+      actualizarNumerosDisponibles();
+    }
+    elemento.remove();
+  }
+
+  // Generar números válidos (con solución)
+  async function generarNumerosValidos() {
+    mostrarMensaje('Generando números válidos...', 'Espera mientras creamos un nuevo desafío para ti.', 'exito');
+
+    do {
+      numerosActuales = Array.from({length: 5}, () => Math.floor(Math.random() * 20) + 1);
+    } while (!tieneSolucion(numerosActuales));
+
+    numerosUsados.clear();
+    actualizarNumerosDisponibles();
+    document.getElementById('zona-expresion').innerHTML = '';
+    document.getElementById('mensaje').style.display = 'none';
+  }
+
+  // Verificar si los números tienen solución
+  function tieneSolucion(numeros) {
+    const memo = new Map();
+    return existeCombinacion(numeros.map(Number), 10, memo);
+  }
+
+  // Algoritmo recursivo con memoización para encontrar combinaciones
+  function existeCombinacion(nums, objetivo, memo) {
+    if (nums.length === 1) return Math.abs(nums[0] - objetivo) < 0.0001;
+
+    const clave = [...nums].sort().join(',') + '|' + objetivo;
+    if (memo.has(clave)) return memo.get(clave);
+
+    for (let i = 0; i < nums.length; i++) {
+      for (let j = i + 1; j < nums.length; j++) {
+        const nuevosNums = [...nums];
+        const [a, b] = [nuevosNums.splice(j, 1)[0], nuevosNums.splice(i, 1)[0]];
+
+        const operaciones = [
+          a + b, a - b, b - a, a * b,
+          ...(b !== 0 ? [a / b] : []),
+          ...(a !== 0 ? [b / a] : [])
+        ];
+
+        for (const res of operaciones) {
+          if (existeCombinacion([...nuevosNums, res], objetivo, memo)) {
+            memo.set(clave, true);
+            return true;
+          }
+        }
+      }
+    }
+
+    memo.set(clave, false);
+    return false;
+  }
+
+  // Actualizar visualización de números disponibles
+  function actualizarNumerosDisponibles() {
+    const panel = document.getElementById('panel-numeros');
+    panel.innerHTML = '';
+
+    numerosActuales.forEach((num, index) => {
+      const elemento = document.createElement('div');
+      elemento.className = `elemento numero ${numerosUsados.has(index.toString()) ? 'usado' : ''}`;
+      elemento.textContent = num;
+      elemento.dataset.valor = num;
+      elemento.dataset.id = index;
+      elemento.draggable = !numerosUsados.has(index.toString());
+
+      if (!numerosUsados.has(index.toString())) {
+        elemento.addEventListener('dragstart', manejarDragStart);
+      }
+
+      panel.appendChild(elemento);
+
+      // Agregar número con clic
+      elemento.addEventListener('click', () => {
+        if (!numerosUsados.has(index.toString())) {
+          const nuevoElemento = crearElementoExpresion(num, num, 'numero', index.toString());
+          document.getElementById('zona-expresion').appendChild(nuevoElemento);
+          numerosUsados.set(index.toString(), nuevoElemento);
+          actualizarNumerosDisponibles();
+        }
+      });
+    });
+  }
+
+  // Verificar la solución del usuario
+  function verificarSolucion() {
+    const zonaExpresion = document.getElementById('zona-expresion');
+    const elementos = Array.from(zonaExpresion.children);
+
+    // Verificar que hay elementos en la expresión
+    if (elementos.length === 0) {
+      mostrarMensaje('¡Expresión vacía!', 'No has construido ninguna expresión matemática.', 'error');
+      return;
+    }
+
+    // Verificar que se hayan usado todos los números
+    if (numerosUsados.size !== numerosActuales.length) {
+      const faltantes = numerosActuales.filter((_, index) => !numerosUsados.has(index.toString()));
+      mostrarMensaje(
+              '¡Faltan números!',
+              `Debes usar TODOS los números generados. Números no usados: ${faltantes.join(', ')}.`,
+              'error'
+      );
+      return;
+    }
+
+    // Construir expresión matemática
+    let expresion = '';
+    elementos.forEach(el => {
+      expresion += el.dataset.valor;
+    });
+
+    try {
+      // Evaluar expresión de forma segura
+      const resultado = evaluarExpresion(expresion);
+
+      if (Math.abs(resultado - 10) < 0.0001) {
+        mostrarMensaje(
+                '¡Correcto! 🎉',
+                `Has resuelto el problema: ${formatearExpresion(elementos)} = 10`,
+                'exito'
+        );
+        setTimeout(generarNumerosValidos, 3000);
+      } else {
+        mostrarMensaje(
+                '¡Incorrecto!',
+                `Tu expresión "${formatearExpresion(elementos)}" da como resultado ${resultado.toFixed(2)}, no 10.`,
+                'error'
+        );
+      }
+    } catch (e) {
+      mostrarMensaje(
+              'Error en la expresión',
+              `No se pudo evaluar tu expresión: ${e.message}. Revisa los operadores y paréntesis.`,
+              'error'
+      );
+    }
+  }
+
+  // Formatear expresión para mostrar al usuario
+  function formatearExpresion(elementos) {
+    return elementos.map(el => el.textContent).join(' ');
+  }
+
+  // Evaluar expresión matemática de forma segura
+  function evaluarExpresion(expresion) {
+    // Reemplazar símbolos para evaluación
+    expresion = expresion.replace(/×/g, '*').replace(/÷/g, '/');
+
+    // Validar caracteres permitidos
+    if (!/^[\d+\-*/().\s]+$/.test(expresion)) {
+      throw new Error('Caracteres no permitidos en la expresión');
+    }
+
+    // Validar paréntesis balanceados
+    if (!parentesisBalanceados(expresion)) {
+      throw new Error('Los paréntesis no están balanceados');
+    }
+
+    // Validar operadores consecutivos
+    if (/([+\-*/]{2,})/.test(expresion)) {
+      throw new Error('Operadores consecutivos no permitidos');
+    }
+
+    // Usar Function como alternativa más segura a eval
+    try {
+      const resultado = new Function(`return ${expresion}`)();
+      if (isNaN(resultado)) {
+        throw new Error('El resultado no es un número válido');
+      }
+      return resultado;
+    } catch (e) {
+      throw new Error('Expresión matemática inválida');
+    }
+  }
+
+  // Verificar paréntesis balanceados
+  function parentesisBalanceados(expresion) {
+    let balance = 0;
+    for (const char of expresion) {
+      if (char === '(') balance++;
+      if (char === ')') balance--;
+      if (balance < 0) return false;
+    }
+    return balance === 0;
+  }
+
+  // Mostrar mensajes al usuario
+  function mostrarMensaje(titulo, detalle, tipo) {
+    const mensaje = document.getElementById('mensaje');
+    mensaje.innerHTML = `
+                <div>${titulo}</div>
+                <div class="detalle-error">${detalle}</div>
+            `;
+    mensaje.className = `mensaje ${tipo}`;
+    mensaje.style.display = 'block';
+
+    // Ocultar después de 5 segundos (excepto mensajes de éxito)
+    if (tipo !== 'exito') {
+      setTimeout(() => {
+        mensaje.style.display = 'none';
+      }, 5000);
+    }
+  }
+
+  // Reiniciar el juego con nuevos números
+  function reiniciarJuego() {
+    generarNumerosValidos();
+  }
+
+  // Limpiar la expresión actual
+  function limpiarExpresion() {
+    document.getElementById('zona-expresion').innerHTML = '';
+    numerosUsados.clear();
+    actualizarNumerosDisponibles();
+    document.getElementById('mensaje').style.display = 'none';
+  }
+</script>
+</body>
+</html>
