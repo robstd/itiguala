@@ -186,116 +186,6 @@
   </style>
 </head>
 <body>
-  <script>
-    var container = document.querySelector("#unity-container");
-    var canvas = document.querySelector("#unity-canvas");
-    var loadingBar = document.querySelector("#unity-loading-bar");
-    var progressBarFull = document.querySelector("#unity-progress-bar-full");
-    var fullscreenButton = document.querySelector("#unity-fullscreen-button");
-    var warningBanner = document.querySelector("#unity-warning");
-
-    // Shows a temporary message banner/ribbon for a few seconds, or
-    // a permanent error message on top of the canvas if type=='error'.
-    // If type=='warning', a yellow highlight color is used.
-    // Modify or remove this function to customize the visually presented
-    // way that non-critical warnings and error messages are presented to the
-    // user.
-    function unityShowBanner(msg, type) {
-      function updateBannerVisibility() {
-        warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-      }
-      var div = document.createElement('div');
-      div.innerHTML = msg;
-      warningBanner.appendChild(div);
-      if (type == 'error') div.style = 'background: red; padding: 10px;';
-      else {
-        if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-        setTimeout(function() {
-          warningBanner.removeChild(div);
-          updateBannerVisibility();
-        }, 5000);
-      }
-      updateBannerVisibility();
-    }
-
-    var buildUrl = "Build";
-    var loaderUrl = buildUrl + "/Downloads.loader.js";
-    var config = {
-      dataUrl: buildUrl + "/Downloads.data.br",
-      frameworkUrl: buildUrl + "/Downloads.framework.js.br",
-      codeUrl: buildUrl + "/Downloads.wasm.br",
-      streamingAssetsUrl: "StreamingAssets",
-      companyName: "DefaultCompany",
-      productName: "numale",
-      productVersion: "1.0",
-      showBanner: unityShowBanner,
-    };
-
-    // By default Unity keeps WebGL canvas render target size matched with
-    // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-    // Set this to false if you want to decouple this synchronization from
-    // happening inside the engine, and you would instead like to size up
-    // the canvas DOM size and WebGL render target sizes yourself.
-    // config.matchWebGLToCanvasSize = false;
-
-    if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-      // Mobile device style: fill the whole browser client area with the game canvas:
-
-      var meta = document.createElement('meta');
-      meta.name = 'viewport';
-      meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-      document.getElementsByTagName('head')[0].appendChild(meta);
-      container.className = "unity-mobile";
-      canvas.className = "unity-mobile";
-
-      // To lower canvas resolution on mobile devices to gain some
-      // performance, uncomment the following line:
-      // config.devicePixelRatio = 1;
-
-      unityShowBanner('WebGL builds are not supported on mobile devices.');
-    } else {
-      // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-
-      canvas.style.width = "960px";
-      canvas.style.height = "600px";
-    }
-
-    loadingBar.style.display = "block";
-
-    var script = document.createElement("script");
-    script.src = loaderUrl;
-    script.onload = () => {
-      createUnityInstance(canvas, config, (progress) => {
-        progressBarFull.style.width = 100 * progress + "%";
-      }).then((unityInstance) => {
-        loadingBar.style.display = "none";
-        fullscreenButton.onclick = () => {
-          unityInstance.SetFullscreen(1);
-        };
-      }).catch((message) => {
-        alert(message);
-      });
-    };
-    document.body.appendChild(script);
-  </script>
-<div class="contenedor-juego">
-  <h1>Proyecto Álgebra 2</h1>
-  <h2>Juego de Expresiones Matemáticas</h2>
-
-  <div class="instrucciones">
-    <h3>Instrucciones del Juego:</h3>
-    <ol>
-      <li>Se generarán <strong>5 números aleatorios</strong> entre 1 y 20.</li>
-      <li>Debes crear una <strong>expresión matemática</strong> usando <strong>TODOS</strong> los números.</li>
-      <li>Puedes usar los operadores: <strong>+</strong>, <strong>-</strong>, <strong>×</strong>, <strong>÷</strong> y paréntesis <strong>( )</strong>.</li>
-      <li><strong>Arrastra los números</strong> al área de expresión (solo puedes usar cada número una vez).</li>
-      <li><strong>Arrastra los operadores</strong> (puedes usarlos múltiples veces).</li>
-      <li>Puedes <strong>reorganizar</strong> los elementos en el área de expresión arrastrándolos.</li>
-      <li>Haz clic en <strong>Verificar solución</strong> para comprobar tu respuesta.</li>
-    </ol>
-    <p><strong>Consejo:</strong> Haz clic en la ✕ para eliminar un elemento de la expresión.</p>
-  </div>
-
   <h2>Números disponibles:</h2>
   <div class="panel-numeros" id="panel-numeros"></div>
 
@@ -332,6 +222,15 @@
   // Inicializar el juego al cargar la página
   document.addEventListener('DOMContentLoaded', () => {
     generarNumerosValidos();
+
+  document.querySelectorAll('.panel-numeros .operador, .panel-numeros .parentesis').forEach(elemento => {
+    elemento.addEventListener('click', () => {
+      const valor = elemento.dataset.valor;
+      const texto = elemento.textContent;
+      const nuevoElemento = crearElementoExpresion(valor, texto, 'operador');
+      document.getElementById('zona-expresion').appendChild(nuevoElemento);
+    });
+  });
     configurarArrastre();
     configurarZonaExpresion();
   });
@@ -340,6 +239,15 @@
   function configurarArrastre() {
     document.querySelectorAll('.panel-numeros .elemento').forEach(elemento => {
       elemento.addEventListener('dragstart', manejarDragStart);
+
+      elemento.addEventListener('click', () => {
+        if (!numerosUsados.has(index.toString())) {
+          const nuevoElemento = crearElementoExpresion(num, num, 'numero', index.toString());
+          document.getElementById('zona-expresion').appendChild(nuevoElemento);
+          numerosUsados.set(index.toString(), nuevoElemento);
+          actualizarNumerosDisponibles();
+        }
+      });
     });
   }
 
@@ -597,6 +505,16 @@
       }
 
       panel.appendChild(elemento);
+
+      // Agregar número con clic
+      elemento.addEventListener('click', () => {
+        if (!numerosUsados.has(index.toString())) {
+          const nuevoElemento = crearElementoExpresion(num, num, 'numero', index.toString());
+          document.getElementById('zona-expresion').appendChild(nuevoElemento);
+          numerosUsados.set(index.toString(), nuevoElemento);
+          actualizarNumerosDisponibles();
+        }
+      });
     });
   }
 
